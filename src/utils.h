@@ -40,6 +40,5 @@ typedef struct {
 #define STRING_EMPTY_INIT                                                      \
   ((String){.data = NULL, .count = 0, .capacity = DA_INIT_CAP})
 
-StringView string_view_from_string(String string){
+static StringView string_view_from_string(String string, size_t start, size_t end);
 
-}
