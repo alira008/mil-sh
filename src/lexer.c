@@ -1,13 +1,22 @@
 #include "lexer.h"
 #include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define LEXER_IS_END (lexer->read_pos >= lexer->input.count)
+#define KEYWORDS_LEN 2
+static const String KEYWORDS_STRING[KEYWORDS_LEN] = {STRING_LIT("echo"),
+                                                     STRING_LIT("exit")};
+static enum TokenType KEYWORDS_TOKENTYPE[KEYWORDS_LEN] = {TOKEN_ECHO,
+                                                          TOKEN_EXIT};
 
+StringView read_ident(Lexer *lexer);
 void read_char(Lexer *lexer);
 void skip_whitespace(Lexer *lexer);
 char peek_char(Lexer *lexer);
 StringView lexer_lex_string(Lexer *lexer);
+int find_keyword(StringView);
 
 Lexer lexer_new(StringView input) {
   Lexer lexer = {.input = input, .ch = '\0'};
@@ -16,13 +25,29 @@ Lexer lexer_new(StringView input) {
 }
 
 Token lexer_next_token(Lexer *lexer) {
-  char c = lexer->input.data[lexer->cur_pos];
+  skip_whitespace(lexer);
   Token token = {0};
-  if (isalpha(c)) {
-    StringView string_view = lexer_lex_string(lexer);
+  if (isalpha(lexer->ch)) {
+    StringView string_view = read_ident(lexer);
+    // check if keyword
+    int location = find_keyword(string_view);
+    if (location != -1) {
+      token.token_type = KEYWORDS_TOKENTYPE[location];
+    } else {
+      token.token_type = TOKEN_IDENT;
+      token.literal.string = string_view;
+    }
   }
 
   return token;
+}
+
+StringView read_ident(Lexer *lexer) {
+  size_t pos = lexer->cur_pos;
+  while (!LEXER_IS_END && !isspace(lexer->ch)) {
+    read_char(lexer);
+  }
+  return string_view_from_string_view(lexer->input, pos, lexer->cur_pos + 1);
 }
 
 void read_char(Lexer *lexer) {
@@ -46,4 +71,19 @@ char peek_char(Lexer *lexer) {
   if (LEXER_IS_END)
     return '\0';
   return lexer->input.data[lexer->read_pos];
+}
+
+int find_keyword(StringView identifier) {
+  int location = -1;
+  for (int i = 0; i < KEYWORDS_LEN; ++i) {
+    if (identifier.count != KEYWORDS_STRING[i].count) {
+      continue;
+    }
+    if (strncmp(identifier.data, KEYWORDS_STRING[i].data, identifier.count) ==
+        0) {
+      location = i;
+      break;
+    }
+  }
+  return location;
 }

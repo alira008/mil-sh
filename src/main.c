@@ -1,3 +1,4 @@
+#include "lexer.h"
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,12 +18,17 @@ void run_shell(void) {
   char buf[SHELL_MAX_BUFF_LEN] = {0};
   do {
     size_t len = read_line(buf, SHELL_MAX_BUFF_LEN);
-    if (strcmp(buf, "exit") == 0) {
+    StringView buf_sv = {.data = buf, .count = len};
+    Lexer lexer = lexer_new(buf_sv);
+    Token token = lexer_next_token(&lexer);
+    if (token.token_type == TOKEN_EXIT) {
+      printf("exit command\n");
       break;
-    } else {
-      printf("line: %s\n", buf);
-      char *sv = buf + 1;
-      printf("line: %s\n", sv);
+    } else if (token.token_type == TOKEN_ECHO) {
+      printf("echo command\n");
+    } else if (token.token_type == TOKEN_IDENT) {
+      printf("ident: %.*s\n", (int)token.literal.string.count,
+             token.literal.string.data);
     }
   } while (1);
 }

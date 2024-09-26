@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdio.h>
 
 typedef struct {
@@ -34,11 +35,20 @@ typedef struct {
   } while (0)
 
 #define STRING_LIT(str)                                                        \
-  ((String){.data = str, .count = sizeof(str), .capacity = sizeof(str)})
+  ((String){.data = str, .count = sizeof(str)-1, .capacity = sizeof(str)})
 #define STRING_INIT(str)                                                       \
   ((String){.data = str, .count = strlen(str), .capacity = strlen(str)})
 #define STRING_EMPTY_INIT                                                      \
   ((String){.data = NULL, .count = 0, .capacity = DA_INIT_CAP})
 
-static StringView string_view_from_string(String string, size_t start, size_t end);
+static inline StringView string_view_from_string(String string, size_t start,
+                                                 size_t end) {
+  assert(string.count <= start + end && "creating string_view out of bounds");
+  return (StringView){.data = string.data + start, .count = end};
+}
 
+static inline StringView
+string_view_from_string_view(StringView string, size_t start, size_t end) {
+  assert(string.count <= start + end && "creating string_view out of bounds");
+  return (StringView){.data = string.data + start, .count = end};
+}
