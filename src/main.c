@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "parser.h"
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,36 +17,13 @@ int main(void) {
 void run_shell(void) {
   char buf[SHELL_MAX_BUFF_LEN] = {0};
   do {
+    fprintf(stdout, "mil-sh > ");
     size_t len = read_line(buf, SHELL_MAX_BUFF_LEN);
-    StringView buf_sv = {.data = buf, .count = len};
-    Lexer lexer = lexer_new(buf_sv);
-    Tokens tokens = {0};
-    tokens.data = malloc(sizeof(Token));
-    Token token = lexer_next_token(&lexer);
-    while (token.token_type != TOKEN_EOF) {
-      if (token.token_type == TOKEN_EXIT) {
-        printf("exit command\n");
-        goto exit_shell;
-      } else if (token.token_type == TOKEN_ECHO) {
-        printf("echo command\n");
-      } else if (token.token_type == TOKEN_IDENT) {
-        printf("ident: %.*s\n", (int)token.literal.string.count,
-               token.literal.string.data);
-      } else if (token.token_type == TOKEN_FLAG_SINGLE_DASH) {
-        printf("flag: -%.*s\n", (int)token.literal.string.count,
-               token.literal.string.data);
-      } else if (token.token_type == TOKEN_FLAG_DOUBLE_DASH) {
-        printf("flag: --%.*s\n", (int)token.literal.string.count,
-               token.literal.string.data);
-      } else if (token.token_type == TOKEN_INVALID) {
-        printf("invalid token\n");
-      }
-      DA_APPEND(&tokens, token);
-      token = lexer_next_token(&lexer);
-    }
-    DA_FREE(&tokens);
+    Parser parser = parser_new(buf, len);
+    parser_parse(&parser);
+    parser_free_tokens(&parser);
+    return;
   } while (1);
-exit_shell:
   return;
 }
 

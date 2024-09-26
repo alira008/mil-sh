@@ -35,7 +35,7 @@ typedef struct {
   } while (0)
 
 #define STRING_LIT(str)                                                        \
-  ((String){.data = str, .count = sizeof(str)-1, .capacity = sizeof(str)})
+  ((String){.data = str, .count = sizeof(str) - 1, .capacity = sizeof(str)})
 #define STRING_INIT(str)                                                       \
   ((String){.data = str, .count = strlen(str), .capacity = strlen(str)})
 #define STRING_EMPTY_INIT                                                      \
@@ -43,12 +43,12 @@ typedef struct {
 
 static inline StringView string_view_from_string(String string, size_t start,
                                                  size_t end) {
-  assert(string.count <= start + end && "creating string_view out of bounds");
+  assert(end <= string.count + 1 && "creating string_view out of bounds");
   return (StringView){.data = string.data + start, .count = end};
 }
 
 static inline StringView
 string_view_from_string_view(StringView string, size_t start, size_t end) {
-  assert(end <= string.count && "creating string_view out of bounds");
-  return (StringView){.data = string.data + start, .count = end};
+  assert(end <= string.count + 1 && "creating string_view out of bounds");
+  return (StringView){.data = string.data + start, .count = end - (start + 1)};
 }

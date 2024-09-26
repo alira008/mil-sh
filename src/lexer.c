@@ -3,14 +3,14 @@
 #include <ctype.h>
 #include <string.h>
 
-#define LEXER_IS_END (lexer->read_pos >= lexer->input.count)
+#define LEXER_IS_END (lexer->read_pos > lexer->input.count)
 #define KEYWORDS_LEN 2
-static const String KEYWORDS_STRING[KEYWORDS_LEN] = {STRING_LIT("echo"),
-                                                     STRING_LIT("exit")};
-static const enum TokenType KEYWORDS_TOKENTYPE[KEYWORDS_LEN] = {TOKEN_ECHO,
-                                                                TOKEN_EXIT};
+static String KEYWORDS_STRING[KEYWORDS_LEN] = {STRING_LIT("echo"),
+                                               STRING_LIT("exit")};
+static enum TokenType KEYWORDS_TOKENTYPE[KEYWORDS_LEN] = {TOKEN_ECHO,
+                                                          TOKEN_EXIT};
 
-StringView read_ident(Lexer *lexer);
+StringView lexer_read_ident(Lexer *lexer);
 void lexer_read_char(Lexer *lexer);
 void lexer_skip_whitespace(Lexer *lexer);
 char lexer_peek_char(Lexer *lexer);
@@ -27,7 +27,7 @@ Token lexer_next_token(Lexer *lexer) {
   lexer_skip_whitespace(lexer);
   Token token = {0};
   if (isalpha(lexer->ch)) {
-    StringView string_view = read_ident(lexer);
+    StringView string_view = lexer_read_ident(lexer);
     // grab keyword index from list
     int location = lexer_find_keyword(string_view);
     if (location != -1) {
@@ -43,10 +43,9 @@ Token lexer_next_token(Lexer *lexer) {
       token.token_type = TOKEN_FLAG_DOUBLE_DASH;
       lexer_read_char(lexer);
     }
-
+    // read identifier of flag
     if (isalpha(lexer->ch)) {
-      StringView string_view = read_ident(lexer);
-      token.literal.string = string_view;
+      token.literal.string = lexer_read_ident(lexer);
     } else {
       token.token_type = TOKEN_INVALID;
     }
@@ -60,9 +59,9 @@ Token lexer_next_token(Lexer *lexer) {
   return token;
 }
 
-StringView read_ident(Lexer *lexer) {
+StringView lexer_read_ident(Lexer *lexer) {
   size_t pos = lexer->cur_pos;
-  while (!LEXER_IS_END && !isspace(lexer->ch)) {
+  while (!LEXER_IS_END && isalpha(lexer->ch)) {
     lexer_read_char(lexer);
   }
   return string_view_from_string_view(lexer->input, pos, lexer->cur_pos + 1);
@@ -80,7 +79,7 @@ void lexer_read_char(Lexer *lexer) {
 }
 
 void lexer_skip_whitespace(Lexer *lexer) {
-  while (isspace(lexer->ch) && lexer->ch != '\0') {
+  while (!LEXER_IS_END && isspace(lexer->ch)) {
     lexer_read_char(lexer);
   }
 }
@@ -104,4 +103,23 @@ int lexer_find_keyword(StringView identifier) {
     }
   }
   return location;
+}
+
+void lexer_print_token(const Token *const token) {
+  if (token->token_type == TOKEN_EXIT) {
+    printf("exit command\n");
+  } else if (token->token_type == TOKEN_ECHO) {
+    printf("echo command\n");
+  } else if (token->token_type == TOKEN_IDENT) {
+    printf("ident: %.*s\n", (int)token->literal.string.count,
+           token->literal.string.data);
+  } else if (token->token_type == TOKEN_FLAG_SINGLE_DASH) {
+    printf("flag: -%.*s\n", (int)token->literal.string.count,
+           token->literal.string.data);
+  } else if (token->token_type == TOKEN_FLAG_DOUBLE_DASH) {
+    printf("flag: --%.*s\n", (int)token->literal.string.count,
+           token->literal.string.data);
+  } else if (token->token_type == TOKEN_INVALID) {
+    printf("invalid token\n");
+  }
 }

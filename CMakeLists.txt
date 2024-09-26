@@ -11,7 +11,7 @@ set(CMAKE_C_STANDARD 17)
 
 project(mil-sh C)
 
-add_executable(mil-sh src/main.c src/lexer.c)
+add_executable(mil-sh src/main.c src/lexer.c src/parser.c)
 
 target_compile_options(
   mil-sh
