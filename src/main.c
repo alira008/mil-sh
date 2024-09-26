@@ -21,7 +21,6 @@ void run_shell(void) {
     size_t len = read_line(buf, SHELL_MAX_BUFF_LEN);
     Parser parser = parser_new(buf, len);
     parser_parse(&parser);
-    parser_free_tokens(&parser);
     return;
   } while (1);
   return;
