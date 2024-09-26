@@ -3,14 +3,32 @@
 #include "utils.h"
 #include <stddef.h>
 
-enum TokenType { TOKEN_IDENT, TOKEN_ECHO, TOKEN_EXIT };
+enum TokenType {
+  TOKEN_INVALID,
+  TOKEN_IDENT,
+  TOKEN_FLOAT,
+  TOKEN_INTEGER,
+  TOKEN_ECHO,
+  TOKEN_EXIT,
+  TOKEN_FLAG_SINGLE_DASH,
+  TOKEN_FLAG_DOUBLE_DASH,
+  TOKEN_EOF,
+};
 
 typedef struct {
   enum TokenType token_type;
   union {
     StringView string;
+    float f32;
+    int i32;
   } literal;
 } Token;
+
+typedef struct {
+  Token* data;
+  size_t count;
+  size_t capacity;
+} Tokens;
 
 typedef struct {
   StringView input;

@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define SHELL_MAX_BUFF_LEN 1024
 
@@ -20,17 +19,34 @@ void run_shell(void) {
     size_t len = read_line(buf, SHELL_MAX_BUFF_LEN);
     StringView buf_sv = {.data = buf, .count = len};
     Lexer lexer = lexer_new(buf_sv);
+    Tokens tokens = {0};
+    tokens.data = malloc(sizeof(Token));
     Token token = lexer_next_token(&lexer);
-    if (token.token_type == TOKEN_EXIT) {
-      printf("exit command\n");
-      break;
-    } else if (token.token_type == TOKEN_ECHO) {
-      printf("echo command\n");
-    } else if (token.token_type == TOKEN_IDENT) {
-      printf("ident: %.*s\n", (int)token.literal.string.count,
-             token.literal.string.data);
+    while (token.token_type != TOKEN_EOF) {
+      if (token.token_type == TOKEN_EXIT) {
+        printf("exit command\n");
+        goto exit_shell;
+      } else if (token.token_type == TOKEN_ECHO) {
+        printf("echo command\n");
+      } else if (token.token_type == TOKEN_IDENT) {
+        printf("ident: %.*s\n", (int)token.literal.string.count,
+               token.literal.string.data);
+      } else if (token.token_type == TOKEN_FLAG_SINGLE_DASH) {
+        printf("flag: -%.*s\n", (int)token.literal.string.count,
+               token.literal.string.data);
+      } else if (token.token_type == TOKEN_FLAG_DOUBLE_DASH) {
+        printf("flag: --%.*s\n", (int)token.literal.string.count,
+               token.literal.string.data);
+      } else if (token.token_type == TOKEN_INVALID) {
+        printf("invalid token\n");
+      }
+      DA_APPEND(&tokens, token);
+      token = lexer_next_token(&lexer);
     }
+    DA_FREE(&tokens);
   } while (1);
+exit_shell:
+  return;
 }
 
 size_t read_line(char *buf, size_t max_len) {

@@ -49,6 +49,6 @@ static inline StringView string_view_from_string(String string, size_t start,
 
 static inline StringView
 string_view_from_string_view(StringView string, size_t start, size_t end) {
-  assert(string.count <= start + end && "creating string_view out of bounds");
+  assert(end <= string.count && "creating string_view out of bounds");
   return (StringView){.data = string.data + start, .count = end};
 }
