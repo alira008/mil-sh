@@ -3,15 +3,19 @@
 #include "utils.h"
 enum CommandType { ECHO_COMMAND_TYPE, EXIT_COMMAND_TYPE };
 enum ArgumentType {
+  ARGUMENT_IDENTIFIER,
   ARGUMENT_LITERAL_STRING,
   ARGUMENT_LITERAL_FLOAT,
   ARGUMENT_LITERAL_INTEGER
 };
 typedef struct {
-  enum ArgumentType argument_type;
+  enum ArgumentType type;
   union {
-    StringView arg;
-  } Type;
+    float f32;
+    int i32;
+    StringView string;
+    StringView identifier;
+  } value;
 } Argument;
 
 typedef struct {

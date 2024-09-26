@@ -1,4 +1,3 @@
-#include "lexer.h"
 #include "parser.h"
 #include "utils.h"
 #include <stdio.h>
@@ -20,8 +19,43 @@ void run_shell(void) {
     fprintf(stdout, "mil-sh > ");
     size_t len = read_line(buf, SHELL_MAX_BUFF_LEN);
     Parser parser = parser_new(buf, len);
-    parser_parse(&parser);
-    return;
+    Commands commands = parser_parse(&parser);
+    if (commands.count == 0) {
+      continue;
+    }
+
+    for (size_t i = 0; i < commands.count; ++i) {
+      Command command = commands.data[i];
+      if (command.type == EXIT_COMMAND_TYPE) {
+        return;
+      } else if (commands.data[i].type == ECHO_COMMAND_TYPE) {
+        Arguments args = command.cmd.echo.args;
+        assert(args.count > 0 && "echo command had 0 args");
+        for (size_t j = 0; j < args.count; ++j) {
+          Argument arg = args.data[j];
+          switch (arg.type) {
+          case ARGUMENT_IDENTIFIER:
+            fprintf(stdout, "%.*s\n", (int)arg.value.identifier.count,
+                    arg.value.identifier.data);
+            break;
+          case ARGUMENT_LITERAL_STRING:
+            fprintf(stdout, "'%.*s'\n", (int)arg.value.string.count,
+                    arg.value.string.data);
+            break;
+          case ARGUMENT_LITERAL_FLOAT:
+            fprintf(stdout, "%f\n", arg.value.f32);
+            break;
+          case ARGUMENT_LITERAL_INTEGER:
+            fprintf(stdout, "%d\n", arg.value.i32);
+            break;
+          default:
+            fprintf(stderr, "unhandled arg print");
+            break;
+          };
+        }
+        DA_FREE(&command.cmd.echo.args);
+      }
+    }
   } while (1);
   return;
 }

@@ -105,21 +105,21 @@ int lexer_find_keyword(StringView identifier) {
   return location;
 }
 
-void lexer_print_token(const Token *const token) {
+void lexer_print_token(FILE* file, const Token *const token) {
   if (token->token_type == TOKEN_EXIT) {
-    printf("exit command\n");
+    fprintf(file, "'exit'");
   } else if (token->token_type == TOKEN_ECHO) {
-    printf("echo command\n");
+    fprintf(file, "'echo'");
   } else if (token->token_type == TOKEN_IDENT) {
-    printf("ident: %.*s\n", (int)token->literal.string.count,
+    fprintf(file, "'%.*s'", (int)token->literal.string.count,
            token->literal.string.data);
   } else if (token->token_type == TOKEN_FLAG_SINGLE_DASH) {
-    printf("flag: -%.*s\n", (int)token->literal.string.count,
+    fprintf(file, "'-%.*s'", (int)token->literal.string.count,
            token->literal.string.data);
   } else if (token->token_type == TOKEN_FLAG_DOUBLE_DASH) {
-    printf("flag: --%.*s\n", (int)token->literal.string.count,
+    fprintf(file, "'--%.*s'", (int)token->literal.string.count,
            token->literal.string.data);
   } else if (token->token_type == TOKEN_INVALID) {
-    printf("invalid token\n");
+    fprintf(file, "invalid token");
   }
 }

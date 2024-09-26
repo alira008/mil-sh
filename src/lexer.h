@@ -38,5 +38,5 @@ typedef struct {
 } Lexer;
 
 Lexer lexer_new(StringView);
-Token lexer_next_token(Lexer *lexer);
-void lexer_print_token(const Token *token);
+Token lexer_next_token(Lexer *);
+void lexer_print_token(FILE*, const Token *);
