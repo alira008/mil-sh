@@ -1,6 +1,9 @@
 #include "lexer.h"
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define LEXER_IS_END (lexer->read_pos > lexer->input.count)
@@ -10,11 +13,12 @@ static String KEYWORDS_STRING[KEYWORDS_LEN] = {STRING_LIT("echo"),
 static enum TokenType KEYWORDS_TOKENTYPE[KEYWORDS_LEN] = {TOKEN_ECHO,
                                                           TOKEN_EXIT};
 
-StringView lexer_read_ident(Lexer *lexer);
-void lexer_read_char(Lexer *lexer);
-void lexer_skip_whitespace(Lexer *lexer);
-char lexer_peek_char(Lexer *lexer);
-StringView lexer_lex_string(Lexer *lexer);
+StringView lexer_read_ident(Lexer *);
+bool lexer_read_number(Lexer *, enum TokenType *, int32_t *, float *);
+void lexer_read_char(Lexer *);
+void lexer_skip_whitespace(Lexer *);
+char lexer_peek_char(Lexer *);
+StringView lexer_lex_string(Lexer *);
 int lexer_find_keyword(StringView);
 
 Lexer lexer_new(StringView input) {
@@ -49,6 +53,25 @@ Token lexer_next_token(Lexer *lexer) {
     } else {
       token.token_type = TOKEN_INVALID;
     }
+  } else if (isdigit(lexer->ch)) {
+    int i32 = 0;
+    float f32 = 0.0;
+    if (!lexer_read_number(lexer, &token.token_type, &i32, &f32)) {
+      fprintf(stderr, "could not convert string to number");
+    } else {
+      switch (token.token_type) {
+      case TOKEN_INTEGER:
+        token.literal.i32 = i32;
+        break;
+      case TOKEN_FLOAT:
+        token.literal.f32 = f32;
+        break;
+      default:
+        fprintf(stderr, "could not convert string to number");
+        break;
+      }
+    }
+
   } else if (lexer->ch == '\0') {
     token.token_type = TOKEN_EOF;
   } else {
@@ -57,14 +80,6 @@ Token lexer_next_token(Lexer *lexer) {
 
   lexer_read_char(lexer);
   return token;
-}
-
-StringView lexer_read_ident(Lexer *lexer) {
-  size_t pos = lexer->cur_pos;
-  while (!LEXER_IS_END && isalpha(lexer->ch)) {
-    lexer_read_char(lexer);
-  }
-  return string_view_from_string_view(lexer->input, pos, lexer->cur_pos + 1);
 }
 
 void lexer_read_char(Lexer *lexer) {
@@ -105,21 +120,70 @@ int lexer_find_keyword(StringView identifier) {
   return location;
 }
 
-void lexer_print_token(FILE* file, const Token *const token) {
+void lexer_print_token(FILE *file, const Token *const token) {
   if (token->token_type == TOKEN_EXIT) {
     fprintf(file, "'exit'");
   } else if (token->token_type == TOKEN_ECHO) {
     fprintf(file, "'echo'");
   } else if (token->token_type == TOKEN_IDENT) {
     fprintf(file, "'%.*s'", (int)token->literal.string.count,
-           token->literal.string.data);
+            token->literal.string.data);
   } else if (token->token_type == TOKEN_FLAG_SINGLE_DASH) {
     fprintf(file, "'-%.*s'", (int)token->literal.string.count,
-           token->literal.string.data);
+            token->literal.string.data);
   } else if (token->token_type == TOKEN_FLAG_DOUBLE_DASH) {
     fprintf(file, "'--%.*s'", (int)token->literal.string.count,
-           token->literal.string.data);
+            token->literal.string.data);
   } else if (token->token_type == TOKEN_INVALID) {
     fprintf(file, "invalid token");
   }
+}
+bool lexer_read_number(Lexer *lexer, enum TokenType *token_type, int32_t *i32,
+                       float *f32) {
+  size_t pos = lexer->cur_pos;
+  while (!LEXER_IS_END && isdigit(lexer->ch)) {
+    lexer_read_char(lexer);
+  }
+
+  // if true, this is a float
+  if (lexer_peek_char(lexer) == '.') {
+    lexer_read_char(lexer);
+  } else {
+    // regular int
+    // total chars in this string
+    *token_type = TOKEN_INTEGER;
+    size_t total_chars = lexer->cur_pos - pos;
+    char *str = strndup((lexer->input.data + pos), total_chars);
+    if (sscanf(str, "%d", i32) == 0) {
+      // failed to convert to string
+      free(str);
+      *token_type = TOKEN_INVALID;
+      return false;
+    }
+    free(str);
+    return true;
+  }
+  while (!LEXER_IS_END && isdigit(lexer->ch)) {
+    lexer_read_char(lexer);
+  }
+
+  *token_type = TOKEN_FLOAT;
+  size_t total_chars = lexer->cur_pos - pos;
+  char *str = strndup((lexer->input.data + pos), total_chars);
+  if (sscanf(str, "%f", f32) == 0) {
+    // failed to convert to string
+    *token_type = TOKEN_INVALID;
+    free(str);
+    return false;
+  }
+  free(str);
+  return true;
+}
+
+StringView lexer_read_ident(Lexer *lexer) {
+  size_t pos = lexer->cur_pos;
+  while (!LEXER_IS_END && isalpha(lexer->ch)) {
+    lexer_read_char(lexer);
+  }
+  return string_view_from_string_view(lexer->input, pos, lexer->cur_pos + 1);
 }
