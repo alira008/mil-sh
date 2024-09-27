@@ -56,6 +56,7 @@ void run_shell(void) {
         DA_FREE(&command.cmd.echo.args);
       }
     }
+    DA_FREE(&commands);
   } while (1);
   return;
 }
