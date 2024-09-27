@@ -43,7 +43,7 @@ void run_shell(void) {
                     arg.value.string.data);
             break;
           case ARGUMENT_LITERAL_FLOAT:
-            fprintf(stdout, "%f\n", arg.value.f32);
+            fprintf(stdout, "%f\n", (double)arg.value.f32);
             break;
           case ARGUMENT_LITERAL_INTEGER:
             fprintf(stdout, "%d\n", arg.value.i32);

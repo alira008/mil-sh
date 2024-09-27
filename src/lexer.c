@@ -14,7 +14,7 @@ static enum TokenType KEYWORDS_TOKENTYPE[KEYWORDS_LEN] = {TOKEN_ECHO,
                                                           TOKEN_EXIT};
 
 StringView lexer_read_ident(Lexer *);
-bool lexer_read_number(Lexer *, enum TokenType *, int32_t *, float *);
+bool lexer_read_number(Lexer *, enum TokenType *, int *, float *);
 void lexer_read_char(Lexer *);
 void lexer_skip_whitespace(Lexer *);
 char lexer_peek_char(Lexer *);
@@ -56,9 +56,7 @@ Token lexer_next_token(Lexer *lexer) {
   } else if (isdigit(lexer->ch)) {
     int i32 = 0;
     float f32 = 0.0;
-    if (!lexer_read_number(lexer, &token.token_type, &i32, &f32)) {
-      fprintf(stderr, "could not convert string to number");
-    } else {
+    if (lexer_read_number(lexer, &token.token_type, &i32, &f32)) {
       switch (token.token_type) {
       case TOKEN_INTEGER:
         token.literal.i32 = i32;
@@ -70,6 +68,8 @@ Token lexer_next_token(Lexer *lexer) {
         fprintf(stderr, "could not convert string to number");
         break;
       }
+    } else {
+      fprintf(stderr, "could not convert string to number");
     }
 
   } else if (lexer->ch == '\0') {
@@ -121,24 +121,40 @@ int lexer_find_keyword(StringView identifier) {
 }
 
 void lexer_print_token(FILE *file, const Token *const token) {
-  if (token->token_type == TOKEN_EXIT) {
+  switch (token->token_type) {
+  case TOKEN_EXIT:
     fprintf(file, "'exit'");
-  } else if (token->token_type == TOKEN_ECHO) {
+    break;
+  case TOKEN_ECHO:
     fprintf(file, "'echo'");
-  } else if (token->token_type == TOKEN_IDENT) {
+    break;
+  case TOKEN_IDENT:
     fprintf(file, "'%.*s'", (int)token->literal.string.count,
             token->literal.string.data);
-  } else if (token->token_type == TOKEN_FLAG_SINGLE_DASH) {
+    break;
+  case TOKEN_INTEGER:
+    fprintf(file, "'%d'", token->literal.i32);
+    break;
+  case TOKEN_FLOAT:
+    fprintf(file, "'%f'", (double)token->literal.f32);
+    break;
+  case TOKEN_FLAG_SINGLE_DASH:
     fprintf(file, "'-%.*s'", (int)token->literal.string.count,
             token->literal.string.data);
-  } else if (token->token_type == TOKEN_FLAG_DOUBLE_DASH) {
+    break;
+  case TOKEN_FLAG_DOUBLE_DASH:
     fprintf(file, "'--%.*s'", (int)token->literal.string.count,
             token->literal.string.data);
-  } else if (token->token_type == TOKEN_INVALID) {
+    break;
+  case TOKEN_INVALID:
     fprintf(file, "invalid token");
+    break;
+  default:
+    fprintf(file, "unhandled token");
+    break;
   }
 }
-bool lexer_read_number(Lexer *lexer, enum TokenType *token_type, int32_t *i32,
+bool lexer_read_number(Lexer *lexer, enum TokenType *token_type, int *i32,
                        float *f32) {
   size_t pos = lexer->cur_pos;
   while (!LEXER_IS_END && isdigit(lexer->ch)) {
@@ -146,12 +162,11 @@ bool lexer_read_number(Lexer *lexer, enum TokenType *token_type, int32_t *i32,
   }
 
   // if true, this is a float
-  if (lexer_peek_char(lexer) == '.') {
+  if (lexer->ch == '.') {
     lexer_read_char(lexer);
   } else {
     // regular int
     // total chars in this string
-    *token_type = TOKEN_INTEGER;
     size_t total_chars = lexer->cur_pos - pos;
     char *str = strndup((lexer->input.data + pos), total_chars);
     if (sscanf(str, "%d", i32) == 0) {
@@ -161,21 +176,24 @@ bool lexer_read_number(Lexer *lexer, enum TokenType *token_type, int32_t *i32,
       return false;
     }
     free(str);
+    *token_type = TOKEN_INTEGER;
     return true;
   }
   while (!LEXER_IS_END && isdigit(lexer->ch)) {
     lexer_read_char(lexer);
   }
 
-  *token_type = TOKEN_FLOAT;
   size_t total_chars = lexer->cur_pos - pos;
   char *str = strndup((lexer->input.data + pos), total_chars);
   if (sscanf(str, "%f", f32) == 0) {
     // failed to convert to string
+    printf("FAIL\n");
     *token_type = TOKEN_INVALID;
     free(str);
     return false;
   }
+  *token_type = TOKEN_FLOAT;
+  printf("WOT\n");
   free(str);
   return true;
 }
